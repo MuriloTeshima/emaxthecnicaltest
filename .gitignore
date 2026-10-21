@@ -57,3 +57,6 @@ CLAUDE.md
 # tesseract language cache
 *.traineddata
 !public/samples/*.pdf
+
+# internal planning notes
+PROJECT.md
