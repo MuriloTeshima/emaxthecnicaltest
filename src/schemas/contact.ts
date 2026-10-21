@@ -1,4 +1,4 @@
-import { z } from "zod";
+import { z } from "./zod";
 import { normalizeTaxId } from "@/domain/tax-id";
 
 export const contactSchema = z.object({

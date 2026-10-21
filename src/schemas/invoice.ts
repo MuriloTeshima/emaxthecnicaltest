@@ -1,4 +1,4 @@
-import { z } from "zod";
+import { z } from "./zod";
 import { parseISODate } from "@/domain/period";
 import { OPERATION_TYPES, VAT_RATES } from "@/domain/rates";
 

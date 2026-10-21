@@ -1,4 +1,4 @@
-import { z } from "zod";
+import { z } from "./zod";
 import { IRPF_RATES, OPERATION_TYPES, VAT_RATES } from "@/domain/rates";
 import { isoDate } from "./invoice";
 

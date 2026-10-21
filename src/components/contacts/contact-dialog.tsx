@@ -64,7 +64,7 @@ export function ContactDialog({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
-        <form onSubmit={submit} className="flex flex-col gap-4">
+        <form onSubmit={submit} className="flex flex-col gap-4" noValidate>
           <DialogHeader>
             <DialogTitle>Nuevo {noun}</DialogTitle>
             <DialogDescription>Solo lo imprescindible. Podrás reutilizarlo en próximas operaciones.</DialogDescription>
