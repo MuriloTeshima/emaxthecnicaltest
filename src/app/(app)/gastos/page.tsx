@@ -2,6 +2,7 @@ import { PenLine, Receipt, ScanLine } from "lucide-react";
 import Link from "next/link";
 import { Suspense } from "react";
 import { EmptyState } from "@/components/empty-state";
+import { FilterBar } from "@/components/filter-bar";
 import { ExpenseStatusButton } from "@/components/expenses/expense-status-button";
 import { PageHeader } from "@/components/page-header";
 import { StatusBadge } from "@/components/status-badge";
@@ -10,6 +11,8 @@ import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { isIntraEu } from "@/domain/rates";
+import { sum } from "@/domain/money";
+import { param, periodOptions, periodRange } from "@/lib/filters";
 import { formatDate, formatEUR } from "@/lib/format";
 import { EXPENSE_CATEGORIES } from "@/schemas/expense";
 import { type ExpenseRow, listExpenses } from "@/server/queries/expenses";
@@ -18,7 +21,7 @@ export const metadata = { title: "Gastos" };
 
 const PAID_LABELS = { PAID: "Pagado", PENDING: "Pendiente" } as const;
 
-export default function ExpensesPage() {
+export default function ExpensesPage({ searchParams }: PageProps<"/gastos">) {
   return (
     <>
       <PageHeader
@@ -38,14 +41,45 @@ export default function ExpensesPage() {
         }
       />
       <Suspense fallback={<TableSkeleton />}>
-        <ExpenseList />
+        <ExpenseList searchParams={searchParams} />
       </Suspense>
     </>
   );
 }
 
-async function ExpenseList() {
-  const expenses = await listExpenses();
+async function ExpenseList({ searchParams }: { searchParams: PageProps<"/gastos">["searchParams"] }) {
+  const params = await searchParams;
+  const values = { q: param(params, "q"), estado: param(params, "estado"), categoria: param(params, "categoria"), periodo: param(params, "periodo") };
+  const filtered = Object.values(values).some(Boolean);
+  const expenses = await listExpenses({ q: values.q, status: values.estado, category: values.categoria, period: periodRange(values.periodo) });
+
+  const filters = (
+    <FilterBar
+      searchPlaceholder="Proveedor, concepto o número"
+      values={values}
+      selects={[
+        {
+          name: "estado",
+          label: "Estado",
+          options: [
+            { value: "pendiente", label: "Pendiente" },
+            { value: "pagado", label: "Pagado" },
+          ],
+        },
+        { name: "categoria", label: "Categoría", options: Object.entries(EXPENSE_CATEGORIES).map(([value, label]) => ({ value, label })) },
+        { name: "periodo", label: "Periodo", options: periodOptions() },
+      ]}
+    />
+  );
+
+  if (expenses.length === 0 && filtered) {
+    return (
+      <>
+        {filters}
+        <EmptyState icon={Receipt} title="Sin resultados" description="Ningún gasto coincide con los filtros." />
+      </>
+    );
+  }
 
   if (expenses.length === 0) {
     return (
@@ -65,6 +99,10 @@ async function ExpenseList() {
 
   return (
     <>
+      {filters}
+      <p className="mb-3 text-sm text-muted-foreground">
+        {expenses.length} {expenses.length === 1 ? "gasto" : "gastos"} · {formatEUR(sum(expenses.map((e) => e.totalCents)))}
+      </p>
       <ul className="flex flex-col gap-3 md:hidden">
         {expenses.map((expense) => (
           <li key={expense.id} className="flex flex-col gap-3 rounded-xl border p-4">

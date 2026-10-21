@@ -2,6 +2,7 @@ import { FileText, Plus } from "lucide-react";
 import Link from "next/link";
 import { Suspense } from "react";
 import { EmptyState } from "@/components/empty-state";
+import { FilterBar } from "@/components/filter-bar";
 import { InvoiceStatusButton } from "@/components/invoices/invoice-status-button";
 import { PageHeader } from "@/components/page-header";
 import { StatusBadge } from "@/components/status-badge";
@@ -9,12 +10,14 @@ import { TableSkeleton } from "@/components/table-skeleton";
 import { buttonVariants } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { isIntraEu } from "@/domain/rates";
+import { sum } from "@/domain/money";
+import { param, periodOptions, periodRange } from "@/lib/filters";
 import { formatDate, formatEUR } from "@/lib/format";
 import { listInvoices } from "@/server/queries/invoices";
 
 export const metadata = { title: "Facturas" };
 
-export default function InvoicesPage() {
+export default function InvoicesPage({ searchParams }: PageProps<"/facturas">) {
   return (
     <>
       <PageHeader
@@ -28,14 +31,45 @@ export default function InvoicesPage() {
         }
       />
       <Suspense fallback={<TableSkeleton />}>
-        <InvoiceList />
+        <InvoiceList searchParams={searchParams} />
       </Suspense>
     </>
   );
 }
 
-async function InvoiceList() {
-  const invoices = await listInvoices();
+async function InvoiceList({ searchParams }: { searchParams: PageProps<"/facturas">["searchParams"] }) {
+  const params = await searchParams;
+  const values = { q: param(params, "q"), estado: param(params, "estado"), periodo: param(params, "periodo") };
+  const filtered = Boolean(values.q || values.estado || values.periodo);
+  const invoices = await listInvoices({ q: values.q, status: values.estado, period: periodRange(values.periodo) });
+
+  const filters = (
+    <FilterBar
+      searchPlaceholder="Cliente, número o concepto"
+      values={values}
+      selects={[
+        {
+          name: "estado",
+          label: "Estado",
+          options: [
+            { value: "pendiente", label: "Pendiente" },
+            { value: "vencida", label: "Vencida" },
+            { value: "cobrada", label: "Cobrada" },
+          ],
+        },
+        { name: "periodo", label: "Periodo", options: periodOptions() },
+      ]}
+    />
+  );
+
+  if (invoices.length === 0 && filtered) {
+    return (
+      <>
+        {filters}
+        <EmptyState icon={FileText} title="Sin resultados" description="Ninguna factura coincide con los filtros." />
+      </>
+    );
+  }
 
   if (invoices.length === 0) {
     return (
@@ -55,6 +89,10 @@ async function InvoiceList() {
 
   return (
     <>
+      {filters}
+      <p className="mb-3 text-sm text-muted-foreground">
+        {invoices.length} {invoices.length === 1 ? "factura" : "facturas"} · {formatEUR(sum(invoices.map((i) => i.totals.totalCents)))}
+      </p>
       {/* Mobile: cards */}
       <ul className="flex flex-col gap-3 md:hidden">
         {invoices.map((invoice) => (
