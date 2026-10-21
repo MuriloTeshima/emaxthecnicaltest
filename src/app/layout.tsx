@@ -16,11 +16,14 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: { default: "EnerFactura", template: "%s · EnerFactura" },
   description: "Facturación y contabilidad para autónomos y pymes.",
+  // The UI is Spanish by design. Browser translation rewrites React-owned text
+  // nodes and makes later updates crash, so opt out of it.
+  other: { google: "notranslate" },
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html lang="es" className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}>
+    <html lang="es" translate="no" className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}>
       <body className="min-h-full">
         {children}
         <Toaster richColors position="top-right" containerAriaLabel="Notificaciones" toastOptions={{ closeButtonAriaLabel: "Cerrar aviso" }} />

@@ -1,7 +1,6 @@
 "use client";
 
 import { Loader2, RotateCcw } from "lucide-react";
-import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -9,7 +8,6 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { resetDemo } from "@/server/actions/demo";
 
 export function ResetDemoButton() {
-  const router = useRouter();
   const [open, setOpen] = useState(false);
   const [pending, startTransition] = useTransition();
 
@@ -20,9 +18,10 @@ export function ResetDemoButton() {
         toast.error(result.error);
         return;
       }
-      setOpen(false);
-      toast.success("Datos de demostración restablecidos.");
-      router.push("/");
+      // Every page and any open form now point at deleted records, so a full
+      // reload (not a client navigation) is the safest way to start clean.
+      // eslint-disable-next-line @next/next/no-location-assign-relative-destination
+      window.location.assign("/");
     });
   }
 
