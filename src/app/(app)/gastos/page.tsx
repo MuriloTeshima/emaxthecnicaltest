@@ -107,10 +107,12 @@ async function ExpenseList() {
                 <TableCell className="max-w-64">
                   <p className="truncate font-medium">{expense.supplier.name}</p>
                   <p className="flex items-center gap-1.5 truncate text-xs text-muted-foreground">
-                    {expense.source === "OCR" && (
-                      <Badge variant="secondary" className="h-4 px-1.5 text-[10px]">
-                        OCR
-                      </Badge>
+                    {expense.documentId && (
+                      <a href={`/api/documents/${expense.documentId}`} target="_blank" rel="noreferrer" title="Ver documento original">
+                        <Badge variant="secondary" className="h-4 px-1.5 text-[10px] hover:bg-primary/10">
+                          OCR · ver
+                        </Badge>
+                      </a>
                     )}
                     {expense.concept}
                     {expense.number && ` · ${expense.number}`}

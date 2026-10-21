@@ -127,6 +127,7 @@ model Document {
   fileName    String
   mimeType    String
   sizeBytes   Int
+  content     Bytes? // original file; small prototype files only (≤ 4 MB)
   url         String?
   ocrProvider String
   ocrRaw      Json
