@@ -2,8 +2,9 @@
 
 Prototipo funcional de facturación y contabilidad para autónomos y pymes, desarrollado como prueba técnica para Grupo EMAX.
 
-**Demo:** https://emaxthecnicaltest.vercel.app
-**Autor:** Murilo Teshima
+- **Demo:** https://emaxthecnicaltest.vercel.app
+- **Código:** https://github.com/MuriloTeshima/emaxthecnicaltest
+- **Autor:** Murilo Teshima
 
 La demo usa datos ficticios compartidos entre todos los visitantes. El botón **Restablecer datos demo** (barra lateral) vuelve a cargar los datos de ejemplo en cualquier momento.
 
