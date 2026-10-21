@@ -44,6 +44,9 @@ export function ContactDialog({
 
   function submit(event: React.FormEvent) {
     event.preventDefault();
+    // The dialog is rendered inside the invoice/expense form; React bubbles
+    // submit events through portals, which would also submit the host form.
+    event.stopPropagation();
     startTransition(async () => {
       const result = await createContact({ kind, name, nif, country, email, isProfessional });
       if (!result.ok) {

@@ -227,7 +227,7 @@ export function InvoiceForm({ contacts: initialContacts, today }: { contacts: Co
                   : null;
               return (
                 <div key={line.key} className="grid grid-cols-6 items-start gap-2 rounded-lg border p-3 sm:grid-cols-12 sm:border-0 sm:p-0">
-                  <Field label="Concepto" htmlFor={`desc-${line.key}`} error={errors[`lines.${index}.description`]} className="col-span-6 sm:col-span-5">
+                  <Field label="Concepto" htmlFor={`desc-${line.key}`} error={errors[`lines.${index}.description`]} className="col-span-6 sm:col-span-4">
                     <Input
                       id={`desc-${line.key}`}
                       value={line.description}
@@ -255,7 +255,7 @@ export function InvoiceForm({ contacts: initialContacts, today }: { contacts: Co
                       aria-invalid={!!errors[`lines.${index}.unitPriceCents`]}
                     />
                   </Field>
-                  <Field label="IVA" htmlFor={`vat-${line.key}`} className="col-span-2 sm:col-span-1">
+                  <Field label="IVA" htmlFor={`vat-${line.key}`} className="col-span-2 sm:col-span-2">
                     <NativeSelect
                       id={`vat-${line.key}`}
                       value={intraEu ? 0 : line.vatRate}

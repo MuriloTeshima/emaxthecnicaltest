@@ -26,7 +26,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
     <html lang="es" translate="no" className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}>
       <body className="min-h-full">
         {children}
-        <Toaster richColors position="top-right" containerAriaLabel="Notificaciones" toastOptions={{ closeButtonAriaLabel: "Cerrar aviso" }} />
+        <Toaster richColors position="bottom-right" containerAriaLabel="Notificaciones" toastOptions={{ closeButtonAriaLabel: "Cerrar aviso" }} />
       </body>
     </html>
   );
