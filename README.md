@@ -3,6 +3,7 @@
 Prototipo funcional de facturación y contabilidad para autónomos y pymes, desarrollado como prueba técnica para Grupo EMAX.
 
 **Demo:** https://emaxthecnicaltest.vercel.app
+**Autor:** Murilo Teshima
 
 La demo usa datos ficticios compartidos entre todos los visitantes. El botón **Restablecer datos demo** (barra lateral) vuelve a cargar los datos de ejemplo en cualquier momento.
 
@@ -70,6 +71,8 @@ Los casos A, B y C vienen precargados en los datos de ejemplo y están cubiertos
 | **Persistencia** | **PostgreSQL en Neon** (región Frankfurt), mediante **Prisma 7**. Los documentos subidos se guardan en la propia base de datos. |
 | OCR con IA | API de Anthropic (Claude Sonnet 5.5) con salida estructurada |
 | OCR sin IA (alternativa) | `unpdf` (texto del PDF) y Tesseract.js (imágenes), con un extractor heurístico propio |
+| PDF | `pdf-lib`, generado en el servidor |
+| Búsqueda | Extensión `unaccent` de PostgreSQL (insensible a acentos y mayúsculas) |
 | Tests | Vitest |
 | Despliegue | Vercel (funciones en `fra1`) |
 
@@ -130,6 +133,10 @@ Son estimaciones orientativas, no declaraciones oficiales.
 
 ## Pendiente o simplificado
 
+**No hay nada simulado:** el OCR extrae los datos de verdad, todo se guarda en la base de datos y los resúmenes e impuestos se calculan a partir de los documentos. Los datos de ejemplo son ficticios, pero se tratan igual que los reales. Si la API de IA no responde, el OCR pasa automáticamente a la extracción local.
+
+Lo que queda fuera o simplificado:
+
 - **Autenticación y usuarios:** no hay inicio de sesión (el enunciado no lo exige). Por eso, en la demo pública todos los visitantes ven todas las empresas en el selector; con usuarios reales cada uno vería solo las suyas.
 - **Edición y borrado** de facturas y gastos: solo se cambia el estado. En una aplicación real una factura emitida no se borra, se rectifica; las facturas rectificativas no están implementadas.
 - **OCR:** extrae un único tipo de IVA por documento; las facturas con varios tipos se registran con el principal y el usuario corrige si hace falta. El OCR local es menos preciso que el de IA y no lee bien fotos de baja calidad.
@@ -177,6 +184,6 @@ Unas **4 horas** de trabajo efectivo, algo más de las 3 indicadas en el enuncia
 
 ### 3. Tres mejoras para hacerlo competitivo
 
-1. **Conexión bancaria (PSD2) con conciliación automática.** Es la tarea manual que más tiempo consume y cierra el ciclo de cobros y pagos sin que el usuario haga nada.
+1. **Conexión bancaria directa (PSD2).** La conciliación ya funciona con extractos CSV; conectarla al banco en tiempo real eliminaría también la importación y cerraría el ciclo de cobros y pagos sin que el usuario haga nada.
 2. **Cumplimiento de Verifactu y envío de factura electrónica.** Es obligatorio en España y da confianza a quien no sabe de contabilidad.
 3. **Asistente fiscal proactivo:** avisos de plazos, previsión de impuestos y borrador de los modelos listo para que lo revise el gestor. Convierte la herramienta de "donde apunto cosas" en "quien me avisa antes de que haya un problema".
