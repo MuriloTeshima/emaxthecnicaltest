@@ -112,6 +112,17 @@ export function ExpenseUpload({ suppliers, today }: { suppliers: Contact[]; toda
             </>
           )}
         </label>
+        <p className="text-center text-sm text-muted-foreground">
+          ¿No tienes una factura a mano? Descarga un ejemplo:{" "}
+          <a href="/samples/factura-profesional.pdf" download className="font-medium text-primary hover:underline">
+            factura en PDF
+          </a>{" "}
+          o{" "}
+          <a href="/samples/ticket-gasolinera.png" download className="font-medium text-primary hover:underline">
+            foto de un ticket
+          </a>
+          .
+        </p>
         {state.status === "idle" && state.error && (
           <p className="flex items-center gap-2 rounded-lg bg-destructive/10 p-3 text-sm text-destructive" role="alert">
             <TriangleAlert className="size-4 shrink-0" />

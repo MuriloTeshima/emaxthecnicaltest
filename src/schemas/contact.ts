@@ -19,6 +19,24 @@ export const contactSchema = z.object({
     .optional()
     .transform((v) => v || null),
   isProfessional: z.boolean().default(false),
+  phone: z
+    .string()
+    .trim()
+    .max(30)
+    .optional()
+    .transform((v) => v || null),
+  address: z
+    .string()
+    .trim()
+    .max(200)
+    .optional()
+    .transform((v) => v || null),
+  notes: z
+    .string()
+    .trim()
+    .max(1000)
+    .optional()
+    .transform((v) => v || null),
 });
 
 export type ContactInput = z.input<typeof contactSchema>;

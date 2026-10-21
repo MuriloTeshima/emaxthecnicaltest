@@ -6,6 +6,8 @@ Prototipo funcional de facturación y contabilidad para autónomos y pymes, desa
 
 La demo usa datos ficticios compartidos entre todos los visitantes. El botón **Restablecer datos demo** (barra lateral) vuelve a cargar los datos de ejemplo en cualquier momento.
 
+Archivos de prueba descargables desde la propia aplicación: [factura en PDF](https://emaxthecnicaltest.vercel.app/samples/factura-profesional.pdf), [foto de un ticket](https://emaxthecnicaltest.vercel.app/samples/ticket-gasolinera.png) y [extracto bancario CSV](https://emaxthecnicaltest.vercel.app/samples/extracto-banco.csv).
+
 ---
 
 ## Qué funciona
@@ -21,11 +23,27 @@ Todo el circuito está conectado: lo que se registra en una sección alimenta la
 | **Impuestos** | Estimaciones de los modelos 303, 111 y 349 por trimestre, con el desglose de los documentos que los componen. |
 | **Contactos** | Clientes y proveedores reutilizables, con NIF-IVA para operadores de la UE y marca de profesional sujeto a retención. |
 
+### Funcionalidades opcionales
+
+Todas las opcionales del enunciado están implementadas y conectadas con el resto:
+
+| Opcional | Qué se puede hacer |
+|---|---|
+| **Presupuestos** | Crear presupuestos con el mismo formulario que las facturas, cambiar su estado (enviado, aceptado, rechazado, caducado) y **convertirlos en factura con un clic**: se copian cliente y líneas y ambos documentos quedan enlazados. |
+| **Exportación PDF** | Descarga de facturas y presupuestos en PDF generado en el servidor, con datos fiscales, desglose de IVA, IBAN y la nota legal de las operaciones intracomunitarias. |
+| **Contactos avanzados** | Ficha de cada contacto con facturado, pendiente de cobro, gastado y pendiente de pago, historial de documentos, edición completa (tipo, teléfono, dirección, notas) y búsqueda. |
+| **Filtros** | En facturas, gastos, contactos y bancos: búsqueda insensible a acentos ("muller" encuentra "Müller"), estado, categoría y trimestre. Los filtros viven en la URL. |
+| **Gestión bancaria** | Importación de extractos CSV (formato habitual de los bancos españoles, con importe o con columnas de cargo y abono). Importar dos veces el mismo extracto no duplica movimientos. |
+| **Conciliación** | Sugerencias por importe, número de factura en el concepto, nombre del contacto y fecha. Conciliación manual o **automática** (solo las coincidencias claras). Al conciliar, la factura queda cobrada o el gasto pagado; se puede deshacer. |
+| **Multiempresa** | Selector de empresa en el menú y alta de nuevas empresas; cada una tiene sus propios datos. |
+| **Configuración** | Datos fiscales de la empresa, IBAN, series de numeración de facturas y presupuestos y plazo de pago por defecto. |
+
 ### Automatizaciones
 - Al elegir un cliente o proveedor de otro país de la UE, la operación se marca como intracomunitaria (sin IVA en la factura, con autorrepercusión en las compras) y pasa al modelo 349.
 - Al elegir un proveedor profesional se propone la retención del 15 %.
 - El OCR busca el proveedor por NIF; si no existe, propone crearlo con los datos leídos.
-- El vencimiento se rellena a 30 días y el estado "vencida" se calcula solo.
+- El vencimiento se rellena con el plazo de pago configurado y el estado "vencida" se calcula solo.
+- Un cobro del banco con el mismo importe que una factura pendiente se propone para conciliar, y al aceptarlo la factura pasa a cobrada.
 - IVA, retención y totales los recalcula siempre el servidor a partir de la base y los tipos.
 
 ### Casos de prueba del enunciado
@@ -37,7 +55,7 @@ Los casos A, B y C vienen precargados en los datos de ejemplo y están cubiertos
 | **A** · Factura emitida 1.000 € + 21 % = 1.210 € | Facturas → `F2026-0001`. Suma 210 € de IVA devengado en el 303. |
 | **B** · Factura recibida 1.000 € + 21 % − 15 % = 1.060 € | Gastos → Asesoría Fiscal López. 210 € de IVA soportado en el 303 y 150 € en el 111. |
 | **C** · Prestación intracomunitaria a Alemania, 2.000 € | Impuestos → modelo 349: `DE123456789`, clave **S**, 2.000 €. |
-| **D** · OCR | Gastos → Subir factura. Hay documentos de prueba en [`samples/`](samples/): una factura PDF de profesional con IRPF y la foto de un ticket. |
+| **D** · OCR | Gastos → Subir factura. La propia pantalla enlaza dos documentos de prueba: una factura PDF de profesional con IRPF y la foto de un ticket. |
 | **E** · Persistencia | Crea una factura y un gasto y recarga: siguen ahí y los resúmenes cuadran. |
 
 ---
@@ -60,21 +78,23 @@ Los casos A, B y C vienen precargados en los datos de ejemplo y están cubiertos
 ```
 src/
   domain/        Reglas de negocio en TypeScript puro: dinero en céntimos, facturas,
-                 gastos, modelos 303/111/349, trimestres, NIF y lectura de texto de facturas.
+                 gastos, modelos 303/111/349, trimestres, NIF, extractos bancarios,
+                 sugerencias de conciliación y lectura de texto de facturas.
                  Sin dependencias de React ni de la base de datos; es lo que cubren los tests.
   schemas/       Esquemas Zod compartidos por formularios y servidor.
   server/
-    actions/     Server Actions (crear factura, gasto, contacto, cambiar estados).
-    queries/     Lecturas, siempre filtradas por empresa.
+    actions/     Server Actions (facturas, presupuestos, gastos, contactos, bancos, empresa).
+    queries/     Lecturas, siempre filtradas por la empresa activa.
     ocr/         Proveedores de extracción (Claude y local) y normalización del resultado.
-  app/           Páginas y rutas (/api/ocr, /api/documents/[id]).
+    pdf/         Generación de PDF de facturas y presupuestos.
+  app/           Páginas y rutas (/api/ocr, /api/pdf/[tipo]/[id], /api/documents/[id]).
   components/    Componentes de interfaz reutilizables.
 prisma/          Esquema, migraciones y datos de ejemplo.
 ```
 
 - **Una sola fuente de cálculo.** El formulario (vista previa), el servidor (al guardar), el panel de inicio y la página de impuestos usan las mismas funciones de `domain/`, así que ninguna cifra puede contradecir a otra.
 - **Dinero en céntimos enteros** con redondeo half-up; el IVA se calcula por tipo sobre la base agrupada, como en una factura real.
-- **Preparado para multiempresa:** todas las tablas tienen `companyId` y todas las consultas filtran por él. El prototipo trabaja con una única empresa demo.
+- **Multiempresa:** todas las tablas tienen `companyId` y todas las consultas filtran por la empresa activa, que se guarda en una cookie.
 
 ## Cómo ejecutarlo en local
 
@@ -110,16 +130,16 @@ Son estimaciones orientativas, no declaraciones oficiales.
 
 ## Pendiente o simplificado
 
-- **Autenticación y usuarios:** no hay inicio de sesión; la demo trabaja con una empresa única (el enunciado no lo exige).
+- **Autenticación y usuarios:** no hay inicio de sesión (el enunciado no lo exige). Por eso, en la demo pública todos los visitantes ven todas las empresas en el selector; con usuarios reales cada uno vería solo las suyas.
 - **Edición y borrado** de facturas y gastos: solo se cambia el estado. En una aplicación real una factura emitida no se borra, se rectifica; las facturas rectificativas no están implementadas.
-- **No implementado (opcional en el enunciado):** presupuestos, exportación a PDF, bancos, conciliación, multiempresa en la interfaz y configuración.
 - **OCR:** extrae un único tipo de IVA por documento; las facturas con varios tipos se registran con el principal y el usuario corrige si hace falta. El OCR local es menos preciso que el de IA y no lee bien fotos de baja calidad.
 - **Archivos:** se guardan en PostgreSQL, que sirve para un prototipo con archivos de hasta 4 MB. En producción irían a un almacenamiento de objetos.
-- **Límite de uso:** el límite de peticiones del OCR está en memoria, así que cada instancia del servidor lleva su propio contador.
+- **Límite de uso:** el límite de peticiones (OCR, alta de empresas, reinicio de la demo) está en memoria, así que cada instancia del servidor lleva su propio contador.
+- **Bancos:** importación por CSV; la conexión directa con el banco (PSD2) queda fuera del prototipo.
 
 ## Tiempo invertido
 
-_[completar con el tiempo efectivo]_
+_[completar: tiempo del núcleo (prioridades 1 a 6) y, por separado, el de las funcionalidades opcionales]_
 
 ## Dificultades encontradas
 
@@ -127,6 +147,8 @@ _[completar con el tiempo efectivo]_
 - **Fechas y zonas horarias.** El driver de PostgreSQL interpreta las columnas `DATE` en la zona horaria del proceso, así que una misma factura podía caer en un trimestre distinto en local que en producción. Lo resolví tratando todas las fechas como días UTC y ejecutando el proceso con `TZ=UTC`.
 - **OCR fiable.** Un modelo que devuelve texto libre exige parsearlo. Usé salida estructurada con un esquema Zod, de modo que la respuesta llega ya validada, y después contrasté la aritmética (base + IVA − IRPF = total) para avisar al usuario cuando algo no cuadra.
 - **OCR sin dependencia externa.** Para que la demo funcione aunque falle la API, añadí una extracción local. Tesseract no funcionaba empaquetado en funciones serverless; hubo que excluirlo del bundle y llevar su caché a `/tmp`.
+- **Formularios dentro de diálogos.** Crear un cliente desde el diálogo de la factura enviaba también la factura: React propaga el evento `submit` por el árbol de componentes aunque el diálogo se pinte fuera del formulario (portal). Lo detecté probando el flujo completo en el navegador y lo resolví deteniendo la propagación en el formulario del diálogo.
+- **Fechas imposibles.** `Date.UTC(2026, 1, 31)` no falla: devuelve el 3 de marzo. Un test del importador bancario lo destapó; ahora una fecha solo es válida si coincide exactamente con lo que se escribió.
 - **Importes en formato español.** "1.060 €" son mil sesenta euros, no uno con seis. Lo detectó un test y lo cubrí en el parser de importes.
 
 ---
