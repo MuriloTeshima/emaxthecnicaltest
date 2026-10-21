@@ -1,13 +1,12 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { formatInvoiceNumber, nextInvoiceSequence } from "@/domain/invoice";
 import { todayUTC } from "@/domain/period";
-import { Prisma } from "@/generated/prisma/client";
 import { type ActionResult, invalid } from "@/lib/action-result";
 import { type InvoiceInput, invoiceSchema } from "@/schemas/invoice";
 import { getCompany } from "../company";
 import { db } from "../db";
+import { nextNumber, withNumberRetry } from "../numbering";
 
 export async function createInvoice(input: InvoiceInput): Promise<ActionResult<{ id: string; number: string }>> {
   const parsed = invoiceSchema.safeParse(input);
@@ -18,44 +17,28 @@ export async function createInvoice(input: InvoiceInput): Promise<ActionResult<{
   const contact = await db.contact.findFirst({ where: { id: data.contactId, companyId: company.id } });
   if (!contact) return { ok: false, error: "El cliente no existe.", fieldErrors: { contactId: "Selecciona un cliente." } };
 
-  const year = data.issueDate.getUTCFullYear();
+  // The number is assigned server-side, inside the same transaction as the insert.
+  const invoice = await withNumberRetry(() =>
+    db.$transaction(async (tx) =>
+      tx.invoice.create({
+        data: {
+          companyId: company.id,
+          contactId: contact.id,
+          number: await nextNumber(tx, "invoice", company.id, company.invoiceSeries, data.issueDate.getUTCFullYear()),
+          issueDate: data.issueDate,
+          dueDate: data.dueDate,
+          operationType: data.operationType,
+          notes: data.notes,
+          lines: { create: data.lines.map((line, position) => ({ ...line, position })) },
+        },
+        select: { id: true, number: true },
+      }),
+    ),
+  );
+  if (!invoice) return { ok: false, error: "No se pudo asignar un número de factura. Inténtalo de nuevo." };
 
-  // The number is assigned server-side. The unique (companyId, number) index
-  // protects against two concurrent saves; retry with the next one if it hits.
-  for (let attempt = 0; attempt < 3; attempt++) {
-    try {
-      const invoice = await db.$transaction(async (tx) => {
-        const existing = await tx.invoice.findMany({
-          where: { companyId: company.id, number: { startsWith: `${company.invoiceSeries}${year}-` } },
-          select: { number: true },
-        });
-        const number = formatInvoiceNumber(
-          company.invoiceSeries,
-          year,
-          nextInvoiceSequence(existing.map((i) => i.number), company.invoiceSeries, year),
-        );
-        return tx.invoice.create({
-          data: {
-            companyId: company.id,
-            contactId: contact.id,
-            number,
-            issueDate: data.issueDate,
-            dueDate: data.dueDate,
-            operationType: data.operationType,
-            notes: data.notes,
-            lines: { create: data.lines.map((line, position) => ({ ...line, position })) },
-          },
-          select: { id: true, number: true },
-        });
-      });
-      revalidatePath("/", "layout");
-      return { ok: true, data: invoice };
-    } catch (error) {
-      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") continue;
-      throw error;
-    }
-  }
-  return { ok: false, error: "No se pudo asignar un número de factura. Inténtalo de nuevo." };
+  revalidatePath("/", "layout");
+  return { ok: true, data: invoice };
 }
 
 export async function setInvoiceStatus(id: string, status: "PENDING" | "PAID"): Promise<ActionResult> {

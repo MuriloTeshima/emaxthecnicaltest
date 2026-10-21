@@ -16,11 +16,12 @@ import { Textarea } from "@/components/ui/textarea";
 import { invoiceTotals, lineBaseCents } from "@/domain/invoice";
 import { formatEUR, parseEuros } from "@/domain/money";
 import { addDays, parseISODate, toISODate } from "@/domain/period";
-import { DEFAULT_PAYMENT_TERM_DAYS, DEFAULT_VAT_RATE, type OperationType, VAT_RATES, isIntraEu } from "@/domain/rates";
+import { DEFAULT_VAT_RATE, type OperationType, VAT_RATES, isIntraEu } from "@/domain/rates";
 import { countryName, isIntraCommunityCountry } from "@/domain/tax-id";
 import type { Contact } from "@/generated/prisma/browser";
 import type { FieldErrors } from "@/lib/action-result";
 import { createInvoice } from "@/server/actions/invoices";
+import { createQuote } from "@/server/actions/quotes";
 
 interface LineState {
   key: number;
@@ -44,13 +45,45 @@ function parseQuantity(value: string): number | null {
   return Number.isFinite(n) && n > 0 ? n : null;
 }
 
-export function InvoiceForm({ contacts: initialContacts, today }: { contacts: Contact[]; today: string }) {
+const COPY = {
+  invoice: {
+    endLabel: "Vencimiento",
+    endHint: (days: number) => `Por defecto, ${days} días.`,
+    endField: "dueDate",
+    submit: "Guardar factura",
+    saved: (number: string) => `Factura ${number} guardada.`,
+    path: "/facturas",
+  },
+  quote: {
+    endLabel: "Válido hasta",
+    endHint: (days: number) => `Validez por defecto: ${days} días.`,
+    endField: "validUntil",
+    submit: "Guardar presupuesto",
+    saved: (number: string) => `Presupuesto ${number} guardado.`,
+    path: "/presupuestos",
+  },
+} as const;
+
+/** Form shared by invoices and quotes: same client, lines and VAT logic. */
+export function SalesDocumentForm({
+  kind,
+  contacts: initialContacts,
+  today,
+  termDays,
+}: {
+  kind: "invoice" | "quote";
+  contacts: Contact[];
+  today: string;
+  /** Default days until the due date (invoices) or the end of validity (quotes). */
+  termDays: number;
+}) {
+  const copy = COPY[kind];
   const router = useRouter();
   const [contacts, setContacts] = useState(initialContacts);
   const [contactId, setContactId] = useState("");
   const [issueDate, setIssueDate] = useState(today);
-  const [dueDate, setDueDate] = useState(toISODate(addDays(parseISODate(today)!, DEFAULT_PAYMENT_TERM_DAYS)));
-  const [dueDateTouched, setDueDateTouched] = useState(false);
+  const [endDate, setEndDate] = useState(toISODate(addDays(parseISODate(today)!, termDays)));
+  const [endDateTouched, setEndDateTouched] = useState(false);
   const [operationType, setOperationType] = useState<OperationType>("DOMESTIC");
   const [notes, setNotes] = useState("");
   const [lines, setLines] = useState<LineState[]>([emptyLine()]);
@@ -95,7 +128,7 @@ export function InvoiceForm({ contacts: initialContacts, today }: { contacts: Co
   function changeIssueDate(value: string) {
     setIssueDate(value);
     const parsed = parseISODate(value);
-    if (parsed && !dueDateTouched) setDueDate(toISODate(addDays(parsed, DEFAULT_PAYMENT_TERM_DAYS)));
+    if (parsed && !endDateTouched) setEndDate(toISODate(addDays(parsed, termDays)));
   }
 
   function updateLine(key: number, patch: Partial<LineState>) {
@@ -117,10 +150,9 @@ export function InvoiceForm({ contacts: initialContacts, today }: { contacts: Co
     }
 
     startTransition(async () => {
-      const result = await createInvoice({
+      const common = {
         contactId,
         issueDate,
-        dueDate,
         operationType,
         notes,
         lines: parsedLines.map((l) => ({
@@ -129,14 +161,16 @@ export function InvoiceForm({ contacts: initialContacts, today }: { contacts: Co
           unitPriceCents: l.unitPriceCents!,
           vatRate: intraEu ? 0 : l.vatRate,
         })),
-      });
+      };
+      const result =
+        kind === "invoice" ? await createInvoice({ ...common, dueDate: endDate }) : await createQuote({ ...common, validUntil: endDate });
       if (!result.ok) {
         setErrors(result.fieldErrors ?? {});
         toast.error(result.error);
         return;
       }
-      toast.success(`Factura ${result.data.number} guardada.`);
-      router.push(`/facturas/${result.data.id}`);
+      toast.success(copy.saved(result.data.number));
+      router.push(`${copy.path}/${result.data.id}`);
     });
   }
 
@@ -175,14 +209,14 @@ export function InvoiceForm({ contacts: initialContacts, today }: { contacts: Co
             <Field label="Fecha de emisión" htmlFor="issueDate" error={errors.issueDate}>
               <Input id="issueDate" type="date" value={issueDate} onChange={(e) => changeIssueDate(e.target.value)} />
             </Field>
-            <Field label="Vencimiento" htmlFor="dueDate" error={errors.dueDate} hint={`Por defecto, ${DEFAULT_PAYMENT_TERM_DAYS} días.`}>
+            <Field label={copy.endLabel} htmlFor="endDate" error={errors[copy.endField]} hint={copy.endHint(termDays)}>
               <Input
-                id="dueDate"
+                id="endDate"
                 type="date"
-                value={dueDate}
+                value={endDate}
                 onChange={(e) => {
-                  setDueDate(e.target.value);
-                  setDueDateTouched(true);
+                  setEndDate(e.target.value);
+                  setEndDateTouched(true);
                 }}
               />
             </Field>
@@ -323,7 +357,7 @@ export function InvoiceForm({ contacts: initialContacts, today }: { contacts: Co
             <AmountRow label="Total" value={formatEUR(totals.totalCents)} strong />
             <Button type="submit" size="lg" className="mt-4" disabled={pending}>
               {pending && <Loader2 className="animate-spin" />}
-              Guardar factura
+              {copy.submit}
             </Button>
             <p className="text-center text-xs text-muted-foreground">El número se asigna automáticamente al guardar.</p>
           </CardContent>

@@ -29,17 +29,33 @@ enum DocumentSource {
   OCR
 }
 
+enum QuoteStatus {
+  DRAFT
+  SENT
+  ACCEPTED
+  REJECTED
+  INVOICED
+}
+
 model Company {
-  id             String     @id @default(cuid())
-  name           String
-  nif            String
-  address        String?
-  invoiceSeries  String     @default("F")
-  createdAt      DateTime   @default(now())
-  contacts       Contact[]
-  invoices       Invoice[]
-  expenses       Expense[]
-  documents      Document[]
+  id              String         @id @default(cuid())
+  name            String
+  nif             String
+  address         String?
+  email           String?
+  phone           String?
+  iban            String?
+  invoiceSeries   String         @default("F")
+  quoteSeries     String         @default("P")
+  paymentTermDays Int            @default(30)
+  isDemo          Boolean        @default(false) // only the demo company is wiped by "Restablecer datos demo"
+  createdAt       DateTime       @default(now())
+  contacts        Contact[]
+  invoices        Invoice[]
+  quotes          Quote[]
+  expenses        Expense[]
+  documents       Document[]
+  bankMovements   BankMovement[]
 }
 
 model Contact {
@@ -51,10 +67,13 @@ model Contact {
   nif            String
   country        String      @default("ES") // ISO 3166-1 alpha-2
   email          String?
+  phone          String?
   address        String?
+  notes          String?
   isProfessional Boolean     @default(false) // supplier subject to IRPF withholding
   createdAt      DateTime    @default(now())
   invoices       Invoice[]
+  quotes         Quote[]
   expenses       Expense[]
 
   @@index([companyId, kind])
@@ -62,20 +81,22 @@ model Contact {
 }
 
 model Invoice {
-  id            String        @id @default(cuid())
+  id            String         @id @default(cuid())
   companyId     String
-  company       Company       @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  company       Company        @relation(fields: [companyId], references: [id], onDelete: Cascade)
   contactId     String
-  contact       Contact       @relation(fields: [contactId], references: [id])
+  contact       Contact        @relation(fields: [contactId], references: [id])
   number        String
-  issueDate     DateTime      @db.Date
-  dueDate       DateTime      @db.Date
-  operationType OperationType @default(DOMESTIC)
-  status        PaymentStatus @default(PENDING)
-  paidAt        DateTime?     @db.Date
+  issueDate     DateTime       @db.Date
+  dueDate       DateTime       @db.Date
+  operationType OperationType  @default(DOMESTIC)
+  status        PaymentStatus  @default(PENDING)
+  paidAt        DateTime?      @db.Date
   notes         String?
-  createdAt     DateTime      @default(now())
+  createdAt     DateTime       @default(now())
   lines         InvoiceLine[]
+  quote         Quote?
+  bankMovements BankMovement[]
 
   @@unique([companyId, number])
   @@index([companyId, issueDate])
@@ -90,6 +111,38 @@ model InvoiceLine {
   quantity       Decimal @db.Decimal(12, 3)
   unitPriceCents Int
   vatRate        Int // percent: 21, 10, 4, 0
+}
+
+model Quote {
+  id            String        @id @default(cuid())
+  companyId     String
+  company       Company       @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  contactId     String
+  contact       Contact       @relation(fields: [contactId], references: [id])
+  number        String
+  issueDate     DateTime      @db.Date
+  validUntil    DateTime      @db.Date
+  operationType OperationType @default(DOMESTIC)
+  status        QuoteStatus   @default(DRAFT)
+  notes         String?
+  invoiceId     String?       @unique // set when the quote is converted
+  invoice       Invoice?      @relation(fields: [invoiceId], references: [id])
+  createdAt     DateTime      @default(now())
+  lines         QuoteLine[]
+
+  @@unique([companyId, number])
+  @@index([companyId, issueDate])
+}
+
+model QuoteLine {
+  id             String  @id @default(cuid())
+  quoteId        String
+  quote          Quote   @relation(fields: [quoteId], references: [id], onDelete: Cascade)
+  position       Int
+  description    String
+  quantity       Decimal @db.Decimal(12, 3)
+  unitPriceCents Int
+  vatRate        Int
 }
 
 model Expense {
@@ -116,6 +169,7 @@ model Expense {
   documentId    String?        @unique
   document      Document?      @relation(fields: [documentId], references: [id])
   createdAt     DateTime       @default(now())
+  bankMovements BankMovement[]
 
   @@index([companyId, date])
 }
@@ -133,4 +187,24 @@ model Document {
   ocrRaw      Json
   createdAt   DateTime @default(now())
   expense     Expense?
+}
+
+/// A line of a bank statement. Positive amounts are money in, negative money out.
+model BankMovement {
+  id           String    @id @default(cuid())
+  companyId    String
+  company      Company   @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  date         DateTime  @db.Date
+  description  String
+  amountCents  Int
+  fingerprint  String // date|amount|description, to skip duplicates when the same CSV is imported twice
+  invoiceId    String?
+  invoice      Invoice?  @relation(fields: [invoiceId], references: [id], onDelete: SetNull)
+  expenseId    String?
+  expense      Expense?  @relation(fields: [expenseId], references: [id], onDelete: SetNull)
+  reconciledAt DateTime?
+  createdAt    DateTime  @default(now())
+
+  @@unique([companyId, fingerprint])
+  @@index([companyId, date])
 }

@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { checkExpenseConsistency, expenseAmounts, inferRate } from "../expense";
 import { formatInvoiceNumber, invoiceTotals, lineBaseCents, nextInvoiceSequence } from "../invoice";
 import { formatEUR, parseEuros, percentOf } from "../money";
-import { isInPeriod, quarterOf } from "../period";
+import { isInPeriod, parseISODate, quarterOf } from "../period";
 import { isValidSpanishTaxId, toEuVatNumber } from "../tax-id";
 import { type TaxExpense, type TaxInvoice, computeModel111, computeModel303, computeModel349 } from "../taxes";
 
@@ -192,6 +192,12 @@ describe("periodos e identificadores", () => {
     expect(quarterOf(date("2026-10-01"))).toEqual({ year: 2026, quarter: 4 });
     expect(isInPeriod(date("2026-12-31"), { year: 2026, quarter: 4 })).toBe(true);
     expect(isInPeriod(date("2027-01-01"), { year: 2026, quarter: 4 })).toBe(false);
+  });
+
+  it("rechaza fechas imposibles en lugar de desplazarlas", () => {
+    expect(parseISODate("2026-02-31")).toBeNull();
+    expect(parseISODate("2026-13-01")).toBeNull();
+    expect(parseISODate("2028-02-29")).toEqual(date("2028-02-29"));
   });
 
   it("valida NIF, NIE y CIF", () => {

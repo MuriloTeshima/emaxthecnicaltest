@@ -6,7 +6,7 @@ import { getCompanyId } from "../company";
 import { db } from "../db";
 import { toDomainLines } from "../mappers";
 
-const include = { contact: true, lines: true } as const;
+const include = { contact: true, lines: true, quote: { select: { id: true, number: true } } } as const;
 type InvoiceRow = Prisma.InvoiceGetPayload<{ include: typeof include }>;
 
 function withTotals(invoice: InvoiceRow) {

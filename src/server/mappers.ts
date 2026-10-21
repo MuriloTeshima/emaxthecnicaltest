@@ -3,7 +3,10 @@ import type { InvoiceLineInput } from "@/domain/invoice";
 import type { TaxExpense, TaxInvoice } from "@/domain/taxes";
 import type { Contact, Expense, Invoice, InvoiceLine } from "@/generated/prisma/client";
 
-export function toDomainLines(lines: InvoiceLine[]): InvoiceLineInput[] {
+type StoredLine = Pick<InvoiceLine, "position" | "description" | "quantity" | "unitPriceCents" | "vatRate">;
+
+/** Invoice and quote lines share this shape. */
+export function toDomainLines(lines: StoredLine[]): InvoiceLineInput[] {
   return [...lines]
     .sort((a, b) => a.position - b.position)
     .map((l) => ({

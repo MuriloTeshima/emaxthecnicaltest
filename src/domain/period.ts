@@ -62,7 +62,8 @@ export function parseISODate(value: string): Date | null {
   const match = value.match(/^(\d{4})-(\d{2})-(\d{2})$/);
   if (!match) return null;
   const date = new Date(Date.UTC(Number(match[1]), Number(match[2]) - 1, Number(match[3])));
-  return Number.isNaN(date.getTime()) ? null : date;
+  // Date.UTC rolls impossible dates over (31 Feb → 3 Mar); reject them instead.
+  return toISODate(date) === value ? date : null;
 }
 
 export function toISODate(date: Date): string {

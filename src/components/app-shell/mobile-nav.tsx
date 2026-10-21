@@ -1,14 +1,14 @@
 "use client";
 
 import { Menu } from "lucide-react";
-import { useState } from "react";
+import { type ReactNode, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { Logo } from "./logo";
 import { NavLinks } from "./nav-links";
 import { ResetDemoButton } from "./reset-demo-button";
 
-export function MobileNav() {
+export function MobileNav({ companySlot }: { companySlot: ReactNode }) {
   const [open, setOpen] = useState(false);
 
   return (
@@ -22,6 +22,7 @@ export function MobileNav() {
             <Logo />
           </SheetTitle>
         </SheetHeader>
+        {companySlot}
         <NavLinks onNavigate={() => setOpen(false)} />
         <div className="mt-auto">
           <ResetDemoButton />

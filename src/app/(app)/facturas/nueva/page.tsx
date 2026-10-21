@@ -1,8 +1,9 @@
 import { Suspense } from "react";
-import { InvoiceForm } from "@/components/invoices/invoice-form";
+import { SalesDocumentForm } from "@/components/invoices/sales-document-form";
 import { PageHeader } from "@/components/page-header";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toISODate, todayUTC } from "@/domain/period";
+import { getCompany } from "@/server/company";
 import { listContacts } from "@/server/queries/contacts";
 
 export const metadata = { title: "Nueva factura" };
@@ -19,6 +20,6 @@ export default function NewInvoicePage() {
 }
 
 async function Form() {
-  const contacts = await listContacts("CLIENT");
-  return <InvoiceForm contacts={contacts} today={toISODate(todayUTC())} />;
+  const [contacts, company] = await Promise.all([listContacts("CLIENT"), getCompany()]);
+  return <SalesDocumentForm kind="invoice" contacts={contacts} today={toISODate(todayUTC())} termDays={company.paymentTermDays} />;
 }
