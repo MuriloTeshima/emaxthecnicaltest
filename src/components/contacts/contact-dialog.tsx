@@ -21,20 +21,21 @@ export function ContactDialog({
   open,
   onOpenChange,
   kind,
-  initialName = "",
+  initial,
   onCreated,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   kind: "CLIENT" | "SUPPLIER";
-  initialName?: string;
+  /** Prefill, e.g. with the supplier detected by OCR. Remount (key) to apply new values. */
+  initial?: { name?: string; nif?: string; country?: string; isProfessional?: boolean };
   onCreated: (contact: Contact) => void;
 }) {
-  const [name, setName] = useState(initialName);
-  const [nif, setNif] = useState("");
-  const [country, setCountry] = useState("ES");
+  const [name, setName] = useState(initial?.name ?? "");
+  const [nif, setNif] = useState(initial?.nif ?? "");
+  const [country, setCountry] = useState(initial?.country && initial.country in EU_COUNTRIES ? initial.country : "ES");
   const [email, setEmail] = useState("");
-  const [isProfessional, setIsProfessional] = useState(false);
+  const [isProfessional, setIsProfessional] = useState(initial?.isProfessional ?? false);
   const [errors, setErrors] = useState<FieldErrors>({});
   const [pending, startTransition] = useTransition();
 

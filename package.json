@@ -3,14 +3,14 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
+    "dev": "TZ=UTC next dev",
     "build": "next build",
-    "start": "next start",
+    "start": "TZ=UTC next start",
     "lint": "eslint",
     "test": "vitest run",
     "postinstall": "prisma generate",
     "db:migrate": "prisma migrate dev",
-    "db:seed": "tsx prisma/seed.ts",
+    "db:seed": "TZ=UTC tsx prisma/seed.ts",
     "typecheck": "tsc --noEmit",
     "vercel-build": "prisma migrate deploy && next build"
   },
