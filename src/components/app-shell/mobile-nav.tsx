@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { Logo } from "./logo";
 import { NavLinks } from "./nav-links";
+import { ResetDemoButton } from "./reset-demo-button";
 
 export function MobileNav() {
   const [open, setOpen] = useState(false);
@@ -22,6 +23,9 @@ export function MobileNav() {
           </SheetTitle>
         </SheetHeader>
         <NavLinks onNavigate={() => setOpen(false)} />
+        <div className="mt-auto">
+          <ResetDemoButton />
+        </div>
       </SheetContent>
     </Sheet>
   );
