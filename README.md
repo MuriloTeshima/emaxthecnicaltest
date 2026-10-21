@@ -139,7 +139,10 @@ Son estimaciones orientativas, no declaraciones oficiales.
 
 ## Tiempo invertido
 
-_[completar: tiempo del núcleo (prioridades 1 a 6) y, por separado, el de las funcionalidades opcionales]_
+Unas **4 horas** de trabajo efectivo, algo más de las 3 indicadas en el enunciado. La diferencia tiene dos motivos:
+
+- **Pruebas.** Además de los tests automáticos del dominio fiscal, recorrí en el navegador todos los casos del enunciado (A a E) y los flujos completos, en escritorio y en móvil. Esas pruebas destaparon errores reales que corregí antes de entregar: el formulario de un diálogo que enviaba también la factura, fechas imposibles aceptadas como válidas y detalles de maquetación.
+- **Funcionalidades opcionales.** Con el núcleo (prioridades 1 a 6) terminado y probado, dediqué el tiempo restante a las funcionalidades opcionales que el enunciado propone (presupuestos, PDF, bancos, conciliación, multiempresa, configuración, filtros y contactos avanzados), porque completan el circuito del producto.
 
 ## Dificultades encontradas
 
